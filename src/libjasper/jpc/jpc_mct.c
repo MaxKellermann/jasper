@@ -71,12 +71,13 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
+#include "jpc_mct.h"
+#include "jpc_fix.h"
 
 #include "jasper/jas_seq.h"
 
-#include "jpc_fix.h"
-#include "jpc_mct.h"
+#include <assert.h>
+#include <math.h>
 
 /******************************************************************************\
 * Code.

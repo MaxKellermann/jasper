@@ -71,10 +71,8 @@
 * Includes.
 \******************************************************************************/
 
-#include <ctype.h>
-#include <math.h>
-#include <stdlib.h>
-#include <assert.h>
+#include "pnm_enc.h"
+#include "pnm_cod.h"
 
 #include "jasper/jas_types.h"
 #include "jasper/jas_tvp.h"
@@ -82,8 +80,7 @@
 #include "jasper/jas_stream.h"
 #include "jasper/jas_debug.h"
 
-#include "pnm_cod.h"
-#include "pnm_enc.h"
+#include <stdio.h>
 
 /******************************************************************************\
 * Local types.
@@ -97,7 +94,7 @@ typedef enum {
 	OPT_TEXT
 } pnm_optid_t;
 
-static jas_taginfo_t pnm_opttab[] = {
+static const jas_taginfo_t pnm_opttab[] = {
 	{OPT_TEXT, "text"},
 	{-1, 0}
 };

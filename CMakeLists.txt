@@ -8,6 +8,8 @@ set(CMAKE_MODULE_PATH
 # This include should be placed as early as possible.
 include(InSourceBuild)
 
+include(CheckCCompilerFlag)
+
 ################################################################################
 # Version information.
 ################################################################################
@@ -76,7 +78,6 @@ include(CheckFunctionExists)
 include(CheckCSourceCompiles)
 include(CTest)
 include(Sanitizers)
-include(EnableAssertions)
 
 cmake_policy(SET CMP0012 NEW)
 
@@ -85,6 +86,8 @@ cmake_policy(SET CMP0012 NEW)
 ################################################################################
 
 option(JAS_ENABLE_SHARED "Enable building of shared library" true)
+option(JAS_ENABLE_HIDDEN "Hide internal symbols" false)
+option(JAS_ENABLE_32BIT "Use 32 bit integers on 64 bit CPUs" false)
 option(JAS_ENABLE_LIBJPEG "Enable the use of the JPEG Library" true)
 option(JAS_ENABLE_OPENGL "Enable the use of the OpenGL/GLUT Library" true)
 option(JAS_ENABLE_STRICT "Enable pedantic error checking" false)
@@ -195,6 +198,25 @@ if (JAS_STRICT)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wformat -Wmissing-prototypes -Wstrict-prototypes")
 endif()
 
+if (JAS_ENABLE_HIDDEN AND NOT WIN32)
+	# don't export internal symbols
+	check_c_compiler_flag("-fvisibility=hidden" JAS_HAVE_VISIBILITY)
+	if (JAS_HAVE_VISIBILITY)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden -DJAS_HAVE_VISIBILITY")
+	endif()
+
+	if (NOT (CMAKE_BUILD_TYPE MATCHES "Debug"))
+		# remove unused internal symbols
+		check_c_compiler_flag("-ffunction-sections" HAVE_FUNCTION_SECTIONS)
+		check_c_compiler_flag("-fdata-sections" HAVE_DATA_SECTIONS)
+		check_c_compiler_flag("-Wl,--gc-sections" HAVE_GC_SECTIONS)
+
+		if (HAVE_FUNCTION_SECTIONS AND HAVE_DATA_SECTIONS AND HAVE_GC_SECTIONS)
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -Wl,--gc-sections")
+		endif()
+	endif()
+endif()
+
 ################################################################################
 # Perform plaform checks.
 ################################################################################
@@ -227,8 +249,12 @@ check_function_exists(getrusage JAS_HAVE_GETRUSAGE)
 # Check for the JPEG library.
 ################################################################################
 
-find_package(JPEG ${JAS_LIBJPEG_REQUIRED})
-message("JPEG library found: ${JPEG_FOUND}")
+if (JAS_ENABLE_LIBJPEG)
+	find_package(JPEG ${JAS_LIBJPEG_REQUIRED})
+	message("JPEG library found: ${JPEG_FOUND}")
+else()
+	set(JPEG_FOUND false)
+endif()
 if (JAS_ENABLE_LIBJPEG AND JPEG_FOUND)
 	set(JAS_HAVE_LIBJPEG 0)
 	message("JPEG include directory: ${JPEG_INCLUDE_DIR}")
@@ -267,9 +293,13 @@ message("JAS_HAVE_LIBJPEG: ${JAS_HAVE_LIBJPEG}")
 # Check for the OpenGL and GLUT libraries.
 ################################################################################
 
-find_package(OpenGL ${JAS_REQUIRED})
 message("JAS_ENABLE_OPENGL: ${JAS_ENABLE_OPENGL}")
-message("OpenGL library found: ${OPENGL_FOUND}")
+if (JAS_ENABLE_OPENGL)
+	find_package(OpenGL ${JAS_REQUIRED})
+	message("OpenGL library found: ${OPENGL_FOUND}")
+else()
+	set(OPENGL_FOUND false)
+endif()
 if (JAS_ENABLE_OPENGL AND OPENGL_FOUND)
 	set(JAS_HAVE_OPENGL 0)
 	message("OpenGL include directory: ${OPENGL_INCLUDE_DIR}")

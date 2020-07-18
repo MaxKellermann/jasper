@@ -71,16 +71,19 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
-
+#include "jasper/jas_image.h"
 #include "jasper/jas_types.h"
 #include "jasper/jas_stream.h"
-#include "jasper/jas_image.h"
 #include "jasper/jas_malloc.h"
+#include "jasper/jas_math.h"
 #include "jasper/jas_debug.h"
 #include "jasper/jas_tvp.h"
 
 #include "bmp_cod.h"
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /******************************************************************************\
 * Local types.
@@ -109,7 +112,7 @@ static int bmp_gobble(jas_stream_t *in, long n);
 * Option parsing.
 \******************************************************************************/
 
-static jas_taginfo_t decopts[] = {
+static const jas_taginfo_t decopts[] = {
 	{OPT_MAXSIZE, "max_samples"},
 	{-1, 0}
 };
@@ -387,11 +390,11 @@ static bmp_info_t *bmp_getinfo(jas_stream_t *in)
 	}
 
 	/* Check for a palette whose size is unreasonably large. */
-	if (info->numcolors > 256 && info->numcolors > num_pixels) {
+	if ((uint_fast32_t)info->numcolors > 256 && (uint_fast32_t)info->numcolors > num_pixels) {
 		jas_eprintf("palette size is greater than 256 and "
 		  "greater than the number of pixels "
 		  "(%zu > %zu)\n",
-		  info->numcolors > num_pixels);
+		  (uint_fast32_t)info->numcolors > num_pixels);
 		goto error;
 	}
 

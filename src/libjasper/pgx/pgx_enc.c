@@ -63,16 +63,12 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
+#include "pgx_enc.h"
+#include "pgx_cod.h"
 
-#include "jasper/jas_tvp.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_image.h"
-#include "jasper/jas_string.h"
 #include "jasper/jas_debug.h"
-
-#include "pgx_cod.h"
-#include "pgx_enc.h"
 
 /******************************************************************************\
 * Local functions.
@@ -82,7 +78,7 @@ static int pgx_puthdr(jas_stream_t *out, pgx_hdr_t *hdr);
 static int pgx_putdata(jas_stream_t *out, pgx_hdr_t *hdr, jas_image_t *image, int cmpt);
 static int pgx_putword(jas_stream_t *out, bool bigendian, int prec,
   uint_fast32_t val);
-static uint_fast32_t pgx_inttoword(int_fast32_t val, int prec, bool sgnd);
+static uint_fast32_t pgx_inttoword(jas_seqent_t val, int prec, bool sgnd);
 
 /******************************************************************************\
 * Code for save operation.

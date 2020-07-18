@@ -62,6 +62,10 @@
 #ifndef JPC_UTIL_H
 #define JPC_UTIL_H
 
+#include "jpc_fix.h"
+
+#include "jasper/jas_seq.h"
+
 /* Parse a comma separated list of real numbers into an array of doubles. */
 int jpc_atoaf(const char *s, int *numvalues, double **values);
 
@@ -72,6 +76,7 @@ jas_seq_t *jpc_seq_upsample(jas_seq_t *seq, int n);
 jas_seq_t *jpc_seq_conv(jas_seq_t *seq0, jas_seq_t *seq1);
 
 /* Compute the norm of a sequence. */
-jpc_fix_t jpc_seq_norm(jas_seq_t *x);
+JAS_ATTRIBUTE_PURE
+jpc_fix_t jpc_seq_norm(const jas_seq_t *x);
 
 #endif

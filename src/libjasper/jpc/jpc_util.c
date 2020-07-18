@@ -69,20 +69,16 @@
 * Includes
 \******************************************************************************/
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include "jpc_util.h"
+#include "jpc_fix.h"
 
 #include "jasper/jas_math.h"
 #include "jasper/jas_malloc.h"
 
-#include "jpc_fix.h"
-#include "jpc_cs.h"
-#include "jpc_flt.h"
-#include "jpc_util.h"
+#include <assert.h>
+#include <string.h>
+#include <math.h>
+#include <stdlib.h>
 
 /******************************************************************************\
 * Miscellaneous Functions
@@ -151,7 +147,7 @@ jas_seq_t *jpc_seq_upsample(jas_seq_t *x, int m)
 	return z;
 }
 
-jpc_fix_t jpc_seq_norm(jas_seq_t *x)
+jpc_fix_t jpc_seq_norm(const jas_seq_t *x)
 {
 	jpc_fix_t s;
 	int i;

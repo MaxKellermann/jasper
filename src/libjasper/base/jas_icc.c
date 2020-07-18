@@ -59,18 +59,17 @@
  * __END_OF_JASPER_LICENSE__
  */
 
-#include <assert.h>
-
-#include "jasper/jas_config.h"
+#include "jasper/jas_icc.h"
 #include "jasper/jas_types.h"
 #include "jasper/jas_malloc.h"
 #include "jasper/jas_debug.h"
-#include "jasper/jas_icc.h"
 #include "jasper/jas_cm.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_string.h"
 
+#include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 
 #define	jas_iccputuint8(out, val)	jas_iccputuint(out, 1, val)
@@ -314,9 +313,7 @@ jas_iccprof_t *jas_iccprof_load(jas_stream_t *in)
 				goto error;
 			curoff += reloff;
 		} else if (reloff < 0) {
-			/* This should never happen since we read the tagged
-			element data in a single pass. */
-			abort();
+			goto error;
 		}
 		prevoff = curoff;
 		if (jas_iccgetuint32(in, &type)) {
@@ -601,8 +598,8 @@ static void jas_iccprof_sorttagtab(jas_icctagtab_t *tagtab)
 
 static int jas_icctagtabent_cmp(const void *src, const void *dst)
 {
-	jas_icctagtabent_t *srctagtabent = JAS_CAST(jas_icctagtabent_t *, src);
-	jas_icctagtabent_t *dsttagtabent = JAS_CAST(jas_icctagtabent_t *, dst);
+	const jas_icctagtabent_t *srctagtabent = JAS_CAST(const jas_icctagtabent_t *, src);
+	const jas_icctagtabent_t *dsttagtabent = JAS_CAST(const jas_icctagtabent_t *, dst);
 	if (srctagtabent->off > dsttagtabent->off) {
 		return 1;
 	} else if (srctagtabent->off < dsttagtabent->off) {
@@ -692,14 +689,15 @@ static jas_iccattrtab_t *jas_iccattrtab_copy(jas_iccattrtab_t *attrtab)
 	jas_iccattrtab_t *newattrtab;
 	int i;
 	if (!(newattrtab = jas_iccattrtab_create()))
-		goto error;
+		return NULL;
 	for (i = 0; i < attrtab->numattrs; ++i) {
 		if (jas_iccattrtab_add(newattrtab, i, attrtab->attrs[i].name,
 		  attrtab->attrs[i].val))
 			goto error;
 	}
 	return newattrtab;
-error:
+ error:
+	jas_iccattrtab_destroy(newattrtab);
 	return 0;
 }
 
@@ -760,18 +758,17 @@ static int jas_iccattrtab_add(jas_iccattrtab_t *attrtab, int i,
 	int n;
 	jas_iccattr_t *attr;
 	jas_iccattrval_t *tmpattrval;
-	tmpattrval = 0;
 	if (i < 0) {
 		i = attrtab->numattrs;
 	}
 	assert(i >= 0 && i <= attrtab->numattrs);
 	if (attrtab->numattrs >= attrtab->maxattrs) {
 		if (jas_iccattrtab_resize(attrtab, attrtab->numattrs + 32)) {
-			goto error;
+			return -1;
 		}
 	}
 	if (!(tmpattrval = jas_iccattrval_clone(val)))
-		goto error;
+		return -1;
 	n = attrtab->numattrs - i;
 	if (n > 0)
 		memmove(&attrtab->attrs[i + 1], &attrtab->attrs[i],
@@ -781,10 +778,6 @@ static int jas_iccattrtab_add(jas_iccattrtab_t *attrtab, int i,
 	attr->val = tmpattrval;
 	++attrtab->numattrs;
 	return 0;
-error:
-	if (tmpattrval)
-		jas_iccattrval_destroy(tmpattrval);
-	return -1;
 }
 
 static int jas_iccattrtab_replace(jas_iccattrtab_t *attrtab, int i,
@@ -1098,6 +1091,8 @@ static int jas_icctxtdesc_input(jas_iccattrval_t *attrval, jas_stream_t *in,
 	txtdesc->ascdata = 0;
 	txtdesc->ucdata = 0;
 	if (jas_iccgetuint32(in, &txtdesc->asclen))
+		goto error;
+	if (txtdesc->asclen < 1)
 		goto error;
 	if (!(txtdesc->ascdata = jas_malloc(txtdesc->asclen)))
 		goto error;
@@ -1718,7 +1713,7 @@ static long jas_iccpowi(int x, int n)
 }
 
 
-jas_iccprof_t *jas_iccprof_createfrombuf(jas_uchar *buf, int len)
+jas_iccprof_t *jas_iccprof_createfrombuf(const jas_uchar *buf, int len)
 {
 	jas_stream_t *in;
 	jas_iccprof_t *prof;

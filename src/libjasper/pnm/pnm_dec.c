@@ -71,18 +71,18 @@
 * Includes.
 \******************************************************************************/
 
-#include <ctype.h>
-#include <math.h>
-#include <stdlib.h>
-#include <assert.h>
+#include "pnm_cod.h"
 
 #include "jasper/jas_types.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_image.h"
 #include "jasper/jas_debug.h"
 #include "jasper/jas_tvp.h"
+#include "jasper/jas_math.h"
 
-#include "pnm_cod.h"
+#include <ctype.h>
+#include <stdlib.h>
+#include <assert.h>
 
 /******************************************************************************\
 * Local types.
@@ -120,7 +120,7 @@ static int pnm_getint16(jas_stream_t *in, int *val);
 * Option parsing.
 \******************************************************************************/
 
-static jas_taginfo_t pnm_decopts[] = {
+static const jas_taginfo_t pnm_decopts[] = {
 	{OPT_ALLOWTRUNC, "allow_trunc"},
 	{OPT_MAXSIZE, "max_samples"},
 	{-1, 0}
@@ -190,6 +190,10 @@ jas_image_t *pnm_decode(jas_stream_t *in, const char *optstr)
 	  JAS_CAST(long, hdr.height), hdr.numcmpts, JAS_CAST(long, hdr.maxval),
 	  hdr.sgnd)
 	  );
+
+	if (hdr.width <= 0 || hdr.height <= 0) {
+		goto error;
+	}
 
 	if (!jas_safe_size_mul3(hdr.width, hdr.height, hdr.numcmpts,
 	  &num_samples)) {

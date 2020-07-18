@@ -71,14 +71,17 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
-#include "jasper/jas_malloc.h"
 #include "jasper/jas_image.h"
+#include "jasper/jas_malloc.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_cm.h"
 #include "jasper/jas_icc.h"
 #include "jasper/jas_debug.h"
+
 #include "jp2_cod.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 static uint_fast32_t jp2_gettypeasoc(int colorspace, int ctype);
 static int clrspctojp2(jas_clrspc_t clrspc);
@@ -293,7 +296,8 @@ int jp2_encode(jas_image_t *image, jas_stream_t *out, const char *optstr)
 	needcdef = 1;
 	switch (jas_clrspc_fam(jas_image_clrspc(image))) {
 	case JAS_CLRSPC_FAM_RGB:
-		if (jas_image_cmpttype(image, 0) ==
+		if (jas_image_numcmpts(image) >= 3 &&
+		  jas_image_cmpttype(image, 0) ==
 		  JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_RGB_R) &&
 		  jas_image_cmpttype(image, 1) ==
 		  JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_RGB_G) &&
@@ -302,7 +306,8 @@ int jp2_encode(jas_image_t *image, jas_stream_t *out, const char *optstr)
 			needcdef = 0;
 		break;
 	case JAS_CLRSPC_FAM_YCBCR:
-		if (jas_image_cmpttype(image, 0) ==
+		if (jas_image_numcmpts(image) >= 3 &&
+		  jas_image_cmpttype(image, 0) ==
 		  JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_YCBCR_Y) &&
 		  jas_image_cmpttype(image, 1) ==
 		  JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_YCBCR_CB) &&
@@ -311,7 +316,8 @@ int jp2_encode(jas_image_t *image, jas_stream_t *out, const char *optstr)
 			needcdef = 0;
 		break;
 	case JAS_CLRSPC_FAM_GRAY:
-		if (jas_image_cmpttype(image, 0) ==
+		if (jas_image_numcmpts(image) >= 1 &&
+		  jas_image_cmpttype(image, 0) ==
 		  JAS_IMAGE_CT_COLOR(JAS_IMAGE_CT_GRAY_Y))
 			needcdef = 0;
 		break;
@@ -328,6 +334,9 @@ int jp2_encode(jas_image_t *image, jas_stream_t *out, const char *optstr)
 		cdef = &box->data.cdef;
 		cdef->numchans = jas_image_numcmpts(image);
 		cdef->ents = jas_alloc2(cdef->numchans, sizeof(jp2_cdefchan_t));
+		if (!cdef->ents) {
+			goto error;
+		}
 		for (i = 0; i < jas_image_numcmpts(image); ++i) {
 			cdefchanent = &cdef->ents[i];
 			cdefchanent->channo = i;

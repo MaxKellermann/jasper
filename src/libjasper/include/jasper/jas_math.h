@@ -83,6 +83,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <limits.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -121,6 +122,14 @@ extern "C" {
 *
 \******************************************************************************/
 
+#ifdef __clang__
+/* suppress clang warning "shifting a negative signed value is
+   undefined" in the assertions below */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshift-negative-value"
+#endif
+
+JAS_ATTRIBUTE_CONST
 JAS_ATTRIBUTE_DISABLE_USAN
 inline static int jas_int_asr(int x, int n)
 {
@@ -134,6 +143,7 @@ inline static int jas_int_asr(int x, int n)
 	return x >> n;
 }
 
+JAS_ATTRIBUTE_CONST
 JAS_ATTRIBUTE_DISABLE_USAN
 inline static int jas_int_asl(int x, int n)
 {
@@ -147,6 +157,7 @@ inline static int jas_int_asl(int x, int n)
 	return x << n;
 }
 
+JAS_ATTRIBUTE_CONST
 JAS_ATTRIBUTE_DISABLE_USAN
 inline static int jas_fast32_asr(int_fast32_t x, int n)
 {
@@ -160,6 +171,7 @@ inline static int jas_fast32_asr(int_fast32_t x, int n)
 	return x >> n;
 }
 
+JAS_ATTRIBUTE_CONST
 JAS_ATTRIBUTE_DISABLE_USAN
 inline static int jas_fast32_asl(int_fast32_t x, int n)
 {
@@ -172,6 +184,10 @@ inline static int jas_fast32_asl(int_fast32_t x, int n)
 	// arithmetic left shift.
 	return x << n;
 }
+
+#ifdef __clang__
+#pragma GCC diagnostic pop
+#endif
 
 /******************************************************************************\
 * Safe integer arithmetic (i.e., with overflow checking).

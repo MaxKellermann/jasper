@@ -63,18 +63,17 @@
 * Includes.
 \******************************************************************************/
 
-#include <stdio.h>
-#include <assert.h>
-#include <ctype.h>
+#include "jpg_jpeglib.h"
 
 #include "jasper/jas_tvp.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_image.h"
-#include "jasper/jas_string.h"
 #include "jasper/jas_debug.h"
+#include "jasper/jas_math.h"
 
-#include "jpg_jpeglib.h"
-#include "jpg_cod.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /******************************************************************************\
 * Types.
@@ -151,7 +150,7 @@ static const char jas_libjpeg_turbo_version[] = JAS_LIBJPEG_TURBO_VERSION;
 * Option parsing.
 \******************************************************************************/
 
-static jas_taginfo_t decopts[] = {
+static const jas_taginfo_t decopts[] = {
 	{OPT_VERSION, "version"},
 	{OPT_MAXSIZE, "max_samples"},
 	{-1, 0}
@@ -358,6 +357,16 @@ error:
 *
 \******************************************************************************/
 
+#ifdef __clang__
+/* suppress clang warning "result of comparison of constant
+   9223372036854775807 with expression of type 'JDIMENSION' (aka
+   'unsigned int') is always false" which happens on 64 bit targets
+   where int_fast32_t (64 bit) is larger than JDIMENSION (= unsigned
+   int, 32 bit) */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
+
 static jas_image_t *jpg_mkimage(j_decompress_ptr cinfo)
 {
 	jas_image_t *image;
@@ -412,6 +421,10 @@ error:
 	}
 	return 0;
 }
+
+#ifdef __clang__
+#pragma GCC diagnostic pop
+#endif
 
 /******************************************************************************\
 * Data source code.

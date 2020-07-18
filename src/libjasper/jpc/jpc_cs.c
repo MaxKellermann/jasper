@@ -71,14 +71,16 @@
 * Includes.
 \******************************************************************************/
 
-#include <stdlib.h>
-#include <assert.h>
-#include <ctype.h>
+#include "jpc_cs.h"
 
 #include "jasper/jas_malloc.h"
 #include "jasper/jas_debug.h"
+#include "jasper/jas_image.h"
 
-#include "jpc_cs.h"
+#include <assert.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 /******************************************************************************\
 * Types.
@@ -87,7 +89,7 @@
 /* Marker segment table entry. */
 typedef struct {
 	int id;
-	char *name;
+	const char *name;
 	jpc_msops_t ops;
 } jpc_mstabent_t;
 
@@ -95,7 +97,7 @@ typedef struct {
 * Local prototypes.
 \******************************************************************************/
 
-static jpc_mstabent_t *jpc_mstab_lookup(int id);
+static const jpc_mstabent_t *jpc_mstab_lookup(int id);
 
 static int jpc_poc_dumpparms(jpc_ms_t *ms, FILE *out);
 static int jpc_poc_putparms(jpc_ms_t *ms, jpc_cstate_t *cstate, jas_stream_t *out);
@@ -170,7 +172,7 @@ static int jpc_cox_putcompparms(jpc_ms_t *ms, jpc_cstate_t *cstate,
 * Global data.
 \******************************************************************************/
 
-static jpc_mstabent_t jpc_mstab[] = {
+static const jpc_mstabent_t jpc_mstab[] = {
 	{JPC_MS_SOC, "SOC", {0, 0, 0, 0}},
 	{JPC_MS_SOT, "SOT", {0, jpc_sot_getparms, jpc_sot_putparms,
 	  jpc_sot_dumpparms}},
@@ -190,8 +192,8 @@ static jpc_mstabent_t jpc_mstab[] = {
 	  jpc_qcc_putparms, jpc_qcc_dumpparms}},
 	{JPC_MS_POC, "POC", {jpc_poc_destroyparms, jpc_poc_getparms,
 	  jpc_poc_putparms, jpc_poc_dumpparms}},
-	{JPC_MS_TLM, "TLM", {0, jpc_unk_getparms, jpc_unk_putparms, 0}},
-	{JPC_MS_PLM, "PLM", {0, jpc_unk_getparms, jpc_unk_putparms, 0}},
+	{JPC_MS_TLM, "TLM", {jpc_unk_destroyparms, jpc_unk_getparms, jpc_unk_putparms, 0}},
+	{JPC_MS_PLM, "PLM", {jpc_unk_destroyparms, jpc_unk_getparms, jpc_unk_putparms, 0}},
 	{JPC_MS_PPM, "PPM", {jpc_ppm_destroyparms, jpc_ppm_getparms,
 	  jpc_ppm_putparms, jpc_ppm_dumpparms}},
 	{JPC_MS_PPT, "PPT", {jpc_ppt_destroyparms, jpc_ppt_getparms,
@@ -232,7 +234,7 @@ void jpc_cstate_destroy(jpc_cstate_t *cstate)
 jpc_ms_t *jpc_getms(jas_stream_t *in, jpc_cstate_t *cstate)
 {
 	jpc_ms_t *ms;
-	jpc_mstabent_t *mstabent;
+	const jpc_mstabent_t *mstabent;
 	jas_stream_t *tmpstream;
 
 	if (!(ms = jpc_ms_create(0))) {
@@ -378,7 +380,7 @@ int jpc_putms(jas_stream_t *out, jpc_cstate_t *cstate, jpc_ms_t *ms)
 jpc_ms_t *jpc_ms_create(int type)
 {
 	jpc_ms_t *ms;
-	jpc_mstabent_t *mstabent;
+	const jpc_mstabent_t *mstabent;
 
 	if (!(ms = jas_malloc(sizeof(jpc_ms_t)))) {
 		return 0;
@@ -403,7 +405,7 @@ void jpc_ms_destroy(jpc_ms_t *ms)
 /* Dump a marker segment to a stream for debugging. */
 void jpc_ms_dump(jpc_ms_t *ms, FILE *out)
 {
-	jpc_mstabent_t *mstabent;
+	const jpc_mstabent_t *mstabent;
 	mstabent = jpc_mstab_lookup(ms->id);
 	fprintf(out, "type = 0x%04"PRIxFAST16" (%s);", ms->id, mstabent->name);
 	if (JPC_MS_HASPARMS(ms->id)) {
@@ -435,8 +437,7 @@ static int jpc_sot_getparms(jpc_ms_t *ms, jpc_cstate_t *cstate, jas_stream_t *in
 	  jpc_getuint8(in, &sot->numparts)) {
 		return -1;
 	}
-	if (sot->tileno > 65534 || sot->len < 12 || sot->partno > 254 ||
-	  sot->numparts > 255) {
+	if (sot->tileno > 65534 || sot->len < 12 || sot->partno > 254) {
 		return -1;
 	}
 	if (jas_stream_eof(in)) {
@@ -544,16 +545,20 @@ static int jpc_siz_getparms(jpc_ms_t *ms, jpc_cstate_t *cstate,
 		  jpc_getuint8(in, &siz->comps[i].vsamp)) {
 			goto error;
 		}
-		if (siz->comps[i].hsamp == 0 || siz->comps[i].hsamp > 255) {
+		if (siz->comps[i].hsamp == 0) {
 			jas_eprintf("invalid XRsiz value %d\n", siz->comps[i].hsamp);
 			goto error;
 		}
-		if (siz->comps[i].vsamp == 0 || siz->comps[i].vsamp > 255) {
+		if (siz->comps[i].vsamp == 0) {
 			jas_eprintf("invalid YRsiz value %d\n", siz->comps[i].vsamp);
 			goto error;
 		}
 		siz->comps[i].sgnd = (tmp >> 7) & 1;
 		siz->comps[i].prec = (tmp & 0x7f) + 1;
+		if (siz->comps[i].prec > 38) {
+			jas_eprintf("invalid component bit depth %d\n", siz->comps[i].prec);
+			goto error;
+		}
 	}
 	if (jas_stream_eof(in)) {
 		goto error;
@@ -819,9 +824,7 @@ static int jpc_cox_getcompparms(jpc_ms_t *ms, jpc_cstate_t *cstate,
 	}
 	return 0;
 error:
-	if (compparms) {
-		jpc_cox_destroycompparms(compparms);
-	}
+	jpc_cox_destroycompparms(compparms);
 	return -1;
 }
 
@@ -1066,11 +1069,13 @@ static int jpc_qcx_getcompparms(jpc_qcxcp_t *compparms, jpc_cstate_t *cstate,
 		for (i = 0; i < compparms->numstepsizes; ++i) {
 			if (compparms->qntsty == JPC_QCX_NOQNT) {
 				if (jpc_getuint8(in, &tmp)) {
+					jpc_qcx_destroycompparms(compparms);
 					return -1;
 				}
 				compparms->stepsizes[i] = JPC_QCX_EXPN(tmp >> 3);
 			} else {
 				if (jpc_getuint16(in, &compparms->stepsizes[i])) {
+					jpc_qcx_destroycompparms(compparms);
 					return -1;
 				}
 			}
@@ -1093,7 +1098,9 @@ static int jpc_qcx_putcompparms(jpc_qcxcp_t *compparms, jpc_cstate_t *cstate,
 	/* Eliminate compiler warning about unused variables. */
 	cstate = 0;
 
-	jpc_putuint8(out, ((compparms->numguard & 7) << 5) | compparms->qntsty);
+	if (jpc_putuint8(out, ((compparms->numguard & 7) << 5) | compparms->qntsty)) {
+		return -1;
+	}
 	for (i = 0; i < compparms->numstepsizes; ++i) {
 		if (compparms->qntsty == JPC_QCX_NOQNT) {
 			if (jpc_putuint8(out, JPC_QCX_GETEXPN(
@@ -1684,9 +1691,9 @@ int jpc_putuint32(jas_stream_t *out, uint_fast32_t val)
 * Miscellany
 \******************************************************************************/
 
-static jpc_mstabent_t *jpc_mstab_lookup(int id)
+static const jpc_mstabent_t *jpc_mstab_lookup(int id)
 {
-	jpc_mstabent_t *mstabent;
+	const jpc_mstabent_t *mstabent;
 	for (mstabent = jpc_mstab;; ++mstabent) {
 		if (mstabent->id == id || mstabent->id < 0) {
 			return mstabent;

@@ -74,8 +74,10 @@
 * Includes.
 \******************************************************************************/
 
+#include "jasper/jas_config.h"
 #include "jasper/jas_types.h"
 #include "jasper/jas_fix.h"
+#include "jasper/jas_math.h"
 
 /******************************************************************************\
 * Basic parameters of the fixed-point type.
@@ -84,7 +86,11 @@
 /* The integral type used to represent a fixed-point number.  This
   type must be capable of representing values from -(2^31) to 2^31-1
   (inclusive). */
+#ifdef JAS_ENABLE_32BIT
+typedef int_least32_t jpc_fix_t;
+#else
 typedef int_fast32_t jpc_fix_t;
+#endif
 
 /* The integral type used to respresent higher-precision intermediate results.
   This type should be capable of representing values from -(2^63) to 2^63-1

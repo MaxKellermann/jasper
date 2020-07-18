@@ -71,15 +71,17 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
+#include "bmp_enc.h"
+#include "bmp_cod.h"
 
 #include "jasper/jas_types.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_image.h"
 #include "jasper/jas_debug.h"
 
-#include "bmp_enc.h"
-#include "bmp_cod.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /******************************************************************************\
 * Local prototypes.
@@ -301,12 +303,12 @@ static int bmp_putdata(jas_stream_t *out, bmp_info_t *info, jas_image_t *image,
 
 	ret = 0;
 	for (i = 0; i < numcmpts; ++i) {
-		bufs[i] = 0;
+		bufs[cmpts[i]] = 0;
 	}
 
 	/* Create temporary matrices to hold component data. */
 	for (i = 0; i < numcmpts; ++i) {
-		if (!(bufs[i] = jas_matrix_create(1, info->width))) {
+		if (!(bufs[cmpts[i]] = jas_matrix_create(1, info->width))) {
 			ret = -1;
 			goto bmp_putdata_done;
 		}
@@ -359,8 +361,8 @@ static int bmp_putdata(jas_stream_t *out, bmp_info_t *info, jas_image_t *image,
 bmp_putdata_done:
 	/* Destroy the temporary matrices. */
 	for (i = 0; i < numcmpts; ++i) {
-		if (bufs[i]) {
-			jas_matrix_destroy(bufs[i]);
+		if (bufs[cmpts[i]]) {
+			jas_matrix_destroy(bufs[cmpts[i]]);
 		}
 	}
 

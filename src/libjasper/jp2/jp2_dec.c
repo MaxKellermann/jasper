@@ -71,16 +71,18 @@
 * Includes.
 \******************************************************************************/
 
+#include "jp2_dec.h"
+#include "jp2_cod.h"
+
 #include "jasper/jas_image.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_math.h"
 #include "jasper/jas_debug.h"
 #include "jasper/jas_malloc.h"
-#include "jasper/jas_version.h"
 #include "jasper/jas_types.h"
 
-#include "jp2_cod.h"
-#include "jp2_dec.h"
+#include <assert.h>
+#include <stdio.h>
 
 #define	JP2_VALIDATELEN	(JAS_MIN(JP2_JP_LEN + 16, JAS_STREAM_MAXPUTBACK))
 
@@ -305,7 +307,10 @@ jas_image_t *jp2_decode(jas_stream_t *in, const char *optstr)
 		jas_eprintf("ICC Profile CS %08x\n", icchdr.colorspc);
 		jas_image_setclrspc(dec->image, fromiccpcs(icchdr.colorspc));
 		dec->image->cmprof_ = jas_cmprof_createfromiccprof(iccprof);
-		assert(dec->image->cmprof_);
+		if (!dec->image->cmprof_) {
+			jas_iccprof_destroy(iccprof);
+			goto error;
+		}
 		jas_iccprof_destroy(iccprof);
 		break;
 	}
@@ -368,6 +373,9 @@ jas_image_t *jp2_decode(jas_stream_t *in, const char *optstr)
 				dec->chantocmptlut[channo] = channo;
 			} else if (cmapent->map == JP2_CMAP_PALETTE) {
 				lutents = jas_alloc2(pclrd->numlutents, sizeof(int_fast32_t));
+				if (!lutents) {
+					goto error;
+				}
 				for (i = 0; i < pclrd->numlutents; ++i) {
 					lutents[i] = pclrd->lutdata[cmapent->pcol + i * pclrd->numchans];
 				}
@@ -388,6 +396,9 @@ jas_image_t *jp2_decode(jas_stream_t *in, const char *optstr)
 				jas_image_setcmpttype(dec->image, newcmptno, jp2_getct(jas_image_clrspc(dec->image), 0, channo + 1));
 				}
 #endif
+			} else {
+				jas_eprintf("error: invalid MTYP in CMAP box\n");
+				goto error;
 			}
 		}
 	}
@@ -400,7 +411,7 @@ jas_image_t *jp2_decode(jas_stream_t *in, const char *optstr)
 
 	/* Determine the type of each component. */
 	if (dec->cdef) {
-		for (i = 0; i < dec->numchans; ++i) {
+		for (i = 0; i < dec->cdef->data.cdef.numchans; ++i) {
 			/* Is the channel number reasonable? */
 			if (dec->cdef->data.cdef.ents[i].channo >= dec->numchans) {
 				jas_eprintf("error: invalid channel number in CDEF box\n");
@@ -455,7 +466,7 @@ error:
 
 int jp2_validate(jas_stream_t *in)
 {
-	char buf[JP2_VALIDATELEN];
+	unsigned char buf[JP2_VALIDATELEN];
 	int i;
 	int n;
 #if 0
@@ -485,7 +496,7 @@ int jp2_validate(jas_stream_t *in)
 	}
 
 	/* Is the box type correct? */
-	if (((buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7]) !=
+	if ((((uint_least32_t)buf[4] << 24) | ((uint_least32_t)buf[5] << 16) | ((uint_least32_t)buf[6] << 8) | (uint_least32_t)buf[7]) !=
 	  JP2_BOX_JP)
 	{
 		return -1;

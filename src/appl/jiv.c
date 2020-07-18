@@ -95,7 +95,7 @@ typedef struct {
 	char **filenames;
 
 	/* The title for the window. */
-	char *title;
+	const char *title;
 
 	/* The time to wait before advancing to the next image (in ms). */
 	int tmout;
@@ -175,7 +175,6 @@ static int jas_image_render(jas_image_t *image, float vtlx, float vtly,
 
 static void dumpstate(void);
 static int pixmap_resize(pixmap_t *p, int w, int h);
-static void pixmap_clear(pixmap_t *p);
 static void cmdinfo(void);
 
 static void cleanupandexit(int);
@@ -190,7 +189,7 @@ static void render(void);
 *
 \******************************************************************************/
 
-jas_opt_t opts[] = {
+static const jas_opt_t opts[] = {
 	{'V', "version", 0},
 	{'v', "v", 0},
 	{'h', "help", 0},
@@ -317,7 +316,7 @@ static void cmdinfo()
 	fprintf(stderr, "%s\n", JAS_NOTES);
 }
 
-static char *helpinfo[] = {
+static const char *const helpinfo[] = {
 "The following options are supported:\n",
 "    --help                  Print this help information and exit.\n",
 "    --version               Print version information and exit.\n",
@@ -328,7 +327,7 @@ static char *helpinfo[] = {
 
 static void usage()
 {
-	char *s;
+	const char *s;
 	int i;
 	cmdinfo();
 	fprintf(stderr, "usage: %s [options] [file1 file2 ...]\n", cmdname);
@@ -353,8 +352,6 @@ static void displayfunc()
 	int regbotlefty;
 	int regtoprightx;
 	int regtoprighty;
-	int regtoprightwidth;
-	int regtoprightheight;
 	int regwidth;
 	int regheight;
 	float x;
@@ -711,10 +708,7 @@ static void previmage()
 
 static int loadimage()
 {
-	int reshapeflag;
 	jas_stream_t *in;
-	int scrnwidth;
-	int scrnheight;
 	int vh;
 	int vw;
 	char *pathname;
@@ -842,11 +836,6 @@ static void unloadimage()
 /******************************************************************************\
 *
 \******************************************************************************/
-
-static void pixmap_clear(pixmap_t *p)
-{
-	memset(p->data, 0, 4 * p->width * p->height * sizeof(GLshort));
-}
 
 static int pixmap_resize(pixmap_t *p, int w, int h)
 {

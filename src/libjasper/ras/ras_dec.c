@@ -71,15 +71,16 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
-#include <stdlib.h>
+#include "ras_cod.h"
 
 #include "jasper/jas_stream.h"
 #include "jasper/jas_image.h"
 #include "jasper/jas_debug.h"
 #include "jasper/jas_tvp.h"
+#include "jasper/jas_math.h"
 
-#include "ras_cod.h"
+#include <assert.h>
+#include <stdlib.h>
 
 /******************************************************************************\
 * Local types.
@@ -112,7 +113,7 @@ static int ras_getcmap(jas_stream_t *in, ras_hdr_t *hdr, ras_cmap_t *cmap);
 * Option parsing.
 \******************************************************************************/
 
-static jas_taginfo_t ras_decopts[] = {
+static const jas_taginfo_t ras_decopts[] = {
 	// Not yet supported
 	// {OPT_ALLOWTRUNC, "allow_trunc"},
 	{OPT_MAXSIZE, "max_samples"},

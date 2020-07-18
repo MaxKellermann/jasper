@@ -63,16 +63,17 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
-#include <ctype.h>
+#include "pgx_cod.h"
 
 #include "jasper/jas_tvp.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_image.h"
-#include "jasper/jas_string.h"
 #include "jasper/jas_debug.h"
+#include "jasper/jas_math.h"
 
-#include "pgx_cod.h"
+#include <assert.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 /******************************************************************************\
 * Local types.
@@ -105,7 +106,7 @@ static jas_seqent_t pgx_wordtoint(uint_fast32_t word, int prec, bool sgnd);
 * Option parsing.
 \******************************************************************************/
 
-static jas_taginfo_t pgx_decopts[] = {
+static const jas_taginfo_t pgx_decopts[] = {
 	// Not yet supported
 	// {OPT_ALLOWTRUNC, "allow_trunc"},
 	{OPT_MAXSIZE, "max_samples"},
@@ -298,6 +299,10 @@ static int pgx_gethdr(jas_stream_t *in, pgx_hdr_t *hdr)
 		jas_eprintf("cannot get precision\n");
 		goto error;
 	}
+	if (hdr->prec > 32) {
+		jas_eprintf("unsupported precision\n");
+		goto error;
+	}
 	if (pgx_getuint32(in, &hdr->width)) {
 		jas_eprintf("cannot get width\n");
 		goto error;
@@ -351,6 +356,8 @@ error:
 
 static int_fast32_t pgx_getword(jas_stream_t *in, bool bigendian, int prec)
 {
+	assert(prec <= 32);
+
 	uint_fast32_t val;
 	int i;
 	int j;
@@ -358,10 +365,6 @@ static int_fast32_t pgx_getword(jas_stream_t *in, bool bigendian, int prec)
 	int wordsize;
 
 	wordsize = (prec + 7) / 8;
-
-	if (prec > 32) {
-		goto error;
-	}
 
 	val = 0;
 	for (i = 0; i < wordsize; ++i) {

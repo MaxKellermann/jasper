@@ -65,17 +65,15 @@
  * $Id$
  */
 
-#include <math.h>
-#include <stdlib.h>
-#include <assert.h>
-#include "jasper/jas_config.h"
 #include "jasper/jas_cm.h"
 #include "jasper/jas_icc.h"
-#include "jasper/jas_init.h"
-#include "jasper/jas_stream.h"
 #include "jasper/jas_malloc.h"
 #include "jasper/jas_math.h"
-#include "jasper/jas_debug.h"
+
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 static jas_cmprof_t *jas_cmprof_create(void);
 static void jas_cmshapmatlut_cleanup(jas_cmshapmatlut_t *);
@@ -175,8 +173,8 @@ error:
 static jas_cmprof_t *jas_cmprof_createsycc()
 {
 	jas_cmprof_t *prof;
-	jas_cmpxform_t *fwdpxform;
-	jas_cmpxform_t *revpxform;
+	jas_cmpxform_t *fwdpxform = NULL;
+	jas_cmpxform_t *revpxform = NULL;
 	jas_cmshapmat_t *fwdshapmat;
 	jas_cmshapmat_t *revshapmat;
 	int i;
@@ -238,6 +236,10 @@ static jas_cmprof_t *jas_cmprof_createsycc()
 	jas_cmpxform_destroy(revpxform);
 	return prof;
 error:
+	if (fwdpxform)
+		jas_cmpxform_destroy(fwdpxform);
+	if (revpxform)
+		jas_cmpxform_destroy(revpxform);
 	return 0;
 }
 
@@ -1076,10 +1078,10 @@ static int icctoclrspc(int iccclrspc, int refflag)
 
 static int mono(jas_iccprof_t *iccprof, int op, jas_cmpxformseq_t **retpxformseq)
 {
-	jas_iccattrval_t *graytrc;
+	jas_iccattrval_t *graytrc = NULL;
 	jas_cmshapmat_t *shapmat;
-	jas_cmpxform_t *pxform;
-	jas_cmpxformseq_t *pxformseq;
+	jas_cmpxform_t *pxform = NULL;
+	jas_cmpxformseq_t *pxformseq = NULL;
 	jas_cmshapmatlut_t lut;
 
 	jas_cmshapmatlut_init(&lut);
@@ -1124,6 +1126,12 @@ static int mono(jas_iccprof_t *iccprof, int op, jas_cmpxformseq_t **retpxformseq
 	*retpxformseq = pxformseq;
 	return 0;
 error:
+	if (graytrc)
+		jas_iccattrval_destroy(graytrc);
+	if (pxform)
+		jas_cmpxform_destroy(pxform);
+	if (pxformseq)
+		jas_cmpxformseq_destroy(pxformseq);
 	return -1;
 }
 

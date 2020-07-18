@@ -63,16 +63,21 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
+#include "mif_cod.h"
 
+#include "jasper/jas_cm.h"
 #include "jasper/jas_tvp.h"
 #include "jasper/jas_stream.h"
 #include "jasper/jas_image.h"
+#include "jasper/jas_seq.h"
 #include "jasper/jas_string.h"
 #include "jasper/jas_malloc.h"
 #include "jasper/jas_debug.h"
 
-#include "mif_cod.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /******************************************************************************\
 * Local types.
@@ -116,13 +121,13 @@ static mif_hdr_t *mif_makehdrfromimage(jas_image_t *image);
 * Local data.
 \******************************************************************************/
 
-jas_taginfo_t mif_tags2[] = {
+static const jas_taginfo_t mif_tags2[] = {
 	{MIF_CMPT, "component"},
 	{MIF_END, "end"},
 	{-1, 0}
 };
 
-jas_taginfo_t mif_tags[] = {
+static const jas_taginfo_t mif_tags[] = {
 	{MIF_TLX, "tlx"},
 	{MIF_TLY, "tly"},
 	{MIF_WIDTH, "width"},
@@ -639,10 +644,11 @@ static int mif_hdr_put(mif_hdr_t *hdr, jas_stream_t *out)
 	mif_cmpt_t *cmpt;
 
 	/* Output signature. */
-	jas_stream_putc(out, (MIF_MAGIC >> 24) & 0xff);
-	jas_stream_putc(out, (MIF_MAGIC >> 16) & 0xff);
-	jas_stream_putc(out, (MIF_MAGIC >> 8) & 0xff);
-	jas_stream_putc(out, MIF_MAGIC & 0xff);
+	if (jas_stream_putc(out, (MIF_MAGIC >> 24) & 0xff) == EOF ||
+	    jas_stream_putc(out, (MIF_MAGIC >> 16) & 0xff) == EOF ||
+	    jas_stream_putc(out, (MIF_MAGIC >> 8) & 0xff) == EOF ||
+	    jas_stream_putc(out, MIF_MAGIC & 0xff) == EOF)
+		return -1;
 
 	/* Output component information. */
 	for (cmptno = 0; cmptno < hdr->numcmpts; ++cmptno) {

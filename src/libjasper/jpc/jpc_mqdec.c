@@ -71,16 +71,14 @@
 * Includes.
 \******************************************************************************/
 
-#include <assert.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include "jpc_mqdec.h"
 
 #include "jasper/jas_types.h"
 #include "jasper/jas_malloc.h"
 #include "jasper/jas_math.h"
 #include "jasper/jas_debug.h"
 
-#include "jpc_mqdec.h"
+#include <assert.h>
 
 /******************************************************************************\
 * Local macros.
@@ -145,9 +143,7 @@ error:
 /* Destroy a MQ decoder. */
 void jpc_mqdec_destroy(jpc_mqdec_t *mqdec)
 {
-	if (mqdec->ctxs) {
-		jas_free(mqdec->ctxs);
-	}
+	jas_free(mqdec->ctxs);
 	jas_free(mqdec);
 }
 
@@ -186,9 +182,9 @@ void jpc_mqdec_setinput(jpc_mqdec_t *mqdec, jas_stream_t *in)
 
 /* Initialize one or more contexts. */
 
-void jpc_mqdec_setctxs(jpc_mqdec_t *mqdec, int numctxs, jpc_mqctx_t *ctxs)
+void jpc_mqdec_setctxs(const jpc_mqdec_t *mqdec, int numctxs, jpc_mqctx_t *ctxs)
 {
-	jpc_mqstate_t **ctx;
+	const jpc_mqstate_t **ctx;
 	int n;
 
 	ctx = mqdec->ctxs;
@@ -209,7 +205,7 @@ void jpc_mqdec_setctxs(jpc_mqdec_t *mqdec, int numctxs, jpc_mqctx_t *ctxs)
 
 void jpc_mqdec_setctx(jpc_mqdec_t *mqdec, int ctxno, jpc_mqctx_t *ctx)
 {
-	jpc_mqstate_t **ctxi;
+	const jpc_mqstate_t **ctxi;
 	ctxi = &mqdec->ctxs[ctxno];
 	*ctxi = &jpc_mqstates[2 * ctx->ind + ctx->mps];
 }
@@ -236,7 +232,7 @@ int jpc_mqdec_getbit_func(register jpc_mqdec_t *mqdec)
 int jpc_mqdec_mpsexchrenormd(register jpc_mqdec_t *mqdec)
 {
 	int ret;
-	register jpc_mqstate_t *state = *mqdec->curctx;
+	register const jpc_mqstate_t *state = *mqdec->curctx;
 	jpc_mqdec_mpsexchange(mqdec->areg, state->qeval, mqdec->curctx, ret);
 	jpc_mqdec_renormd(mqdec->areg, mqdec->creg, mqdec->ctreg, mqdec->in,
 	  mqdec->eof, mqdec->inbuffer);
@@ -247,7 +243,7 @@ int jpc_mqdec_mpsexchrenormd(register jpc_mqdec_t *mqdec)
 int jpc_mqdec_lpsexchrenormd(register jpc_mqdec_t *mqdec)
 {
 	int ret;
-	register jpc_mqstate_t *state = *mqdec->curctx;
+	register const jpc_mqstate_t *state = *mqdec->curctx;
 	jpc_mqdec_lpsexchange(mqdec->areg, state->qeval, mqdec->curctx, ret);
 	jpc_mqdec_renormd(mqdec->areg, mqdec->creg, mqdec->ctreg, mqdec->in,
 	  mqdec->eof, mqdec->inbuffer);
@@ -295,7 +291,7 @@ static void jpc_mqdec_bytein(jpc_mqdec_t *mqdec)
 
 /* Dump a MQ decoder to a stream for debugging. */
 
-void jpc_mqdec_dump(jpc_mqdec_t *mqdec, FILE *out)
+void jpc_mqdec_dump(const jpc_mqdec_t *mqdec, FILE *out)
 {
 	fprintf(out, "MQDEC A = %08lx, C = %08lx, CT=%08lx, ",
 	  (unsigned long) mqdec->areg, (unsigned long) mqdec->creg,
